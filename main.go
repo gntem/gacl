@@ -8,24 +8,9 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-// User model
-type User struct {
-	gorm.Model
-	Name string `gorm:"type:varchar(255);unique;not null"`
-}
-
-// Group model
-type Group struct {
-	gorm.Model
-	Name        string        `gorm:"type:varchar(255);unique;not null"`
-	Permissions []*Permission `gorm:"many2many:group_permissions;"`
-	Users       []*User       `gorm:"many2many:group_users;"`
-}
-
-// Permission model
-type Permission struct {
-	gorm.Model
-	Name string `gorm:"type:varchar(255);unique;not null"`
+// Env locals
+type Env struct {
+	db *gorm.DB
 }
 
 func main() {
@@ -37,29 +22,44 @@ func main() {
 		panic("Failed connecting to db")
 	}
 
+	defer db.Close()
+
 	db.DropTableIfExists(&User{}, &Group{}, &Permission{})
 	db.AutoMigrate(&User{}, &Group{}, &Permission{})
 
-	defer db.Close()
+	envCtx := &Env{db: db}
 
 	router := gin.Default()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 
-	router.GET("/group", getGroups)
-	router.POST("/group", postGroup)
-	router.DELETE("/group/:id", deleteGroup)
-	router.PATCH("/group/:id", updateGroup)
+	// Group
+	// with=['users','permissions']
+	router.GET("/group/:groupId", envCtx.getGroup)
+	router.GET("/group/all", envCtx.getAllGroups)
+	router.POST("/group", envCtx.createGroup)
+	router.DELETE("/group/:groupId", envCtx.removeGroup)
+	router.PATCH("/group/:groupId", envCtx.updateGroup)
+	router.PUT("/group/:groupId?", envCtx.upsertGroup)
+	router.POST("/group/:groupId/user/add", envCtx.addUserToGroup)
+	router.DELETE("/group/:groupId/user/:userId", envCtx.removeUserFromGroup)
 
-	router.GET("/user", getUsers)
-	router.POST("/user", postUser)
-	router.DELETE("/user/:id", deleteUser)
-	router.PATCH("/user/:id", updateUser)
+	// User
+	router.GET("/user/all", envCtx.getAllUsers)
+	// ?with=['permissions','groups']
+	router.GET("/user/:userId", envCtx.getUser)
+	router.POST("/user", envCtx.createUser)
+	router.DELETE("/user/:userId", envCtx.removeUser)
+	router.PATCH("/user/:userId", envCtx.updateUser)
+	router.PUT("/user/:userId", envCtx.upsertUser)
+	router.PUT("/user/:userId/permissions/grant", envCtx.grantPermission)
+	router.PUT("/user/:userId/permissions/revoke", envCtx.revokePermission)
 
-	router.GET("/permission", getPermissions)
-	router.POST("/permission", postPermission)
-	router.DELETE("/permission/:id", deletePermission)
-	router.PATCH("/permission/:id", updatePermission)
+	// Permission
+	router.GET("/permission", envCtx.getPermissions)
+	router.POST("/permission", envCtx.postPermission)
+	router.DELETE("/permission/:id", envCtx.deletePermission)
+	router.PATCH("/permission/:id", envCtx.updatePermission)
 
 	router.Run()
 }
