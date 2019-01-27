@@ -35,9 +35,11 @@ type Group struct {
 // Permission model
 type Permission struct {
 	gorm.Model
+	ID   int64
 	Name string `gorm:"type:varchar(255);unique;not null"`
 }
 
+// Pagination struct
 type Pagination struct {
 	Page   uint64 `validate:"gte=0"`
 	Offset uint64 `validate:"gte=0"`
@@ -46,25 +48,43 @@ type Pagination struct {
 	Order  string `validate:"oneof=desc asc"`
 }
 
+// UserCreateRequest struct
 type UserCreateRequest struct {
 	Name string `form:"name" validate:"min=4,max=255" binding:"required"`
 }
 
+// GroupCreateRequest struct
 type GroupCreateRequest struct {
 	Name string `form:"name" validate:"min=4,max=255" binding:"required"`
 }
 
+// UserUpdateRequest struct
 type UserUpdateRequest struct {
 	Name string `form:"name" validate:"min=4,max=255"`
 }
 
+// GroupUpdateRequest struct
 type GroupUpdateRequest struct {
 	Name string `form:"name" validate:"min=4,max=255"`
 }
 
+// PermissionUpdateRequest struct
+type PermissionUpdateRequest struct {
+	Name string `form:"name" validate:"min=4,max=255"`
+}
+
+// Authorization middleware, authorize using vault.
 func authorizationMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Next()
+	}
+}
+
+func disableFavicon() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if ctx.Request.URL.Path == "/favicon.ico" {
+			return
+		}
 	}
 }
 
@@ -93,11 +113,12 @@ func main() {
 	router := gin.Default()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+	router.Use(disableFavicon())
 
 	// Group
 	// with=['users','permissions']
 	router.GET("/group/:groupID", func(ctx *gin.Context) {
-		groupIDArg := ctx.Query("groupID")
+		groupIDArg := ctx.Param("groupID")
 
 		var result []Group
 
@@ -115,8 +136,8 @@ func main() {
 
 		dbError := db.First(&result, groupID)
 
-		if dbError != nil {
-			panic(dbError)
+		if dbError.Error != nil {
+			panic(dbError.Error)
 		}
 		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": result})
 	})
@@ -133,8 +154,8 @@ func main() {
 
 		dbError := db.Limit(rp.Limit).Offset(rp.Offset).Order(sortBy).Find(&result)
 
-		if dbError != nil {
-			panic(dbError)
+		if dbError.Error != nil {
+			panic(dbError.Error)
 		}
 
 		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": result})
@@ -149,14 +170,14 @@ func main() {
 
 		dbError := db.Create(&rgroup)
 
-		if dbError != nil {
-			panic(dbError)
+		if dbError.Error != nil {
+			panic(dbError.Error)
 		}
 
 		ctx.JSON(http.StatusCreated, gin.H{"error": nil, "result": rgroup})
 	})
 	router.DELETE("/group/:groupID", func(ctx *gin.Context) {
-		groupIDArg := ctx.Query("groupID")
+		groupIDArg := ctx.Param("groupID")
 
 		if len(groupIDArg) == 0 {
 			ctx.JSON(http.StatusBadRequest,
@@ -172,14 +193,14 @@ func main() {
 
 		dbError := db.Delete(&Group{ID: groupID})
 
-		if dbError != nil {
-			panic(dbError)
+		if dbError.Error != nil {
+			panic(dbError.Error)
 		}
 
 		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": nil})
 	})
 	router.PUT("/group/:groupID", func(ctx *gin.Context) {
-		groupIDArg := ctx.Query("groupID")
+		groupIDArg := ctx.Param("groupID")
 
 		if len(groupIDArg) == 0 {
 			ctx.JSON(http.StatusBadRequest,
@@ -206,19 +227,19 @@ func main() {
 
 		dbError := db.Model(&Group{ID: groupID}).Updates(&Group{Name: rgroupUpdate.Name})
 
-		if dbError != nil {
-			panic(dbError)
+		if dbError.Error != nil {
+			panic(dbError.Error)
 		}
 
 		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": nil})
 
 	})
-	router.POST("/group/user/add", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
-	router.DELETE("/group/user/:userId", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
+	// router.POST("/group/users", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
+	// router.DELETE("/group/users", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
 
 	// User
 	router.GET("/user/:userID", func(ctx *gin.Context) {
-		userIDArg := ctx.Query("userID")
+		userIDArg := ctx.Param("userID")
 
 		var result []User
 
@@ -236,8 +257,8 @@ func main() {
 
 		dbError := db.First(&result, userID)
 
-		if dbError != nil {
-			panic(dbError)
+		if dbError.Error != nil {
+			panic(dbError.Error)
 		}
 		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": result})
 	})
@@ -256,8 +277,8 @@ func main() {
 
 		dbError := db.Limit(rp.Limit).Offset(rp.Offset).Order(sortBy).Find(&result)
 
-		if dbError != nil {
-			panic(dbError)
+		if dbError.Error != nil {
+			panic(dbError.Error)
 		}
 
 		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": result})
@@ -273,15 +294,15 @@ func main() {
 
 		dbError := db.Create(&ruser)
 
-		if dbError != nil {
-			panic(dbError)
+		if dbError.Error != nil {
+			panic(dbError.Error)
 		}
 
 		ctx.JSON(http.StatusCreated, gin.H{"error": nil, "result": ruser})
 	})
 
 	router.DELETE("/user/:userID", func(ctx *gin.Context) {
-		userIDArg := ctx.Query("userID")
+		userIDArg := ctx.Param("userID")
 
 		if len(userIDArg) == 0 {
 			ctx.JSON(http.StatusBadRequest,
@@ -297,15 +318,15 @@ func main() {
 
 		dbError := db.Delete(&User{ID: userID})
 
-		if dbError != nil {
-			panic(dbError)
+		if dbError.Error != nil {
+			panic(dbError.Error)
 		}
 
 		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": nil})
 
 	})
 	router.PUT("/user/:userID", func(ctx *gin.Context) {
-		userIDArg := ctx.Query("userID")
+		userIDArg := ctx.Param("userID")
 
 		if len(userIDArg) == 0 {
 			ctx.JSON(http.StatusBadRequest,
@@ -332,8 +353,8 @@ func main() {
 
 		dbError := db.Model(&User{ID: userID}).Updates(&User{Name: rUserUpdate.Name})
 
-		if dbError != nil {
-			panic(dbError)
+		if dbError.Error != nil {
+			panic(dbError.Error)
 		}
 
 		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": nil})
@@ -343,9 +364,108 @@ func main() {
 	router.PUT("/user/:userID/permissions/revoke", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
 
 	// Permission
-	router.GET("/permission", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
-	router.DELETE("/permission/:id", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
-	router.PUT("/permission/:id", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
+	router.GET("/permission/:permissionID", func(ctx *gin.Context) {
+		permissionIDArg := ctx.Param("permissionID")
+
+		var result []Permission
+
+		if len(permissionIDArg) == 0 {
+			ctx.JSON(http.StatusBadRequest,
+				gin.H{"error": GACLAPIError{Message: "Missing :permissionID query param value"},
+					"result": nil})
+		}
+
+		permissionID, parseError := strconv.ParseInt(permissionIDArg, 8, 64)
+
+		if parseError != nil {
+			panic(parseError)
+		}
+
+		dbError := db.First(&result, permissionID)
+
+		if dbError.Error != nil {
+			panic(dbError.Error)
+		}
+		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": result})
+	})
+	router.GET("/permissions", func(ctx *gin.Context) {
+		var result []Permission
+		var rp Pagination
+
+		if bindingError := ctx.ShouldBindQuery(&rp); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": bindingError.Error()})
+			return
+		}
+
+		sortBy := fmt.Sprintf("%s %s", rp.SortBy, rp.Order)
+
+		dbError := db.Limit(rp.Limit).Offset(rp.Offset).Order(sortBy).Find(&result)
+
+		if dbError.Error != nil {
+			panic(dbError.Error)
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": result})
+	})
+	router.DELETE("/permission/:permissionID", func(ctx *gin.Context) {
+		permissionIDArg := ctx.Param("permissionID")
+
+		if len(permissionIDArg) == 0 {
+			ctx.JSON(http.StatusBadRequest,
+				gin.H{"error": GACLAPIError{Message: "Missing :permissionID query param value"},
+					"result": nil})
+		}
+
+		permissionID, parseError := strconv.ParseInt(permissionIDArg, 8, 64)
+
+		if parseError != nil {
+			panic(parseError)
+		}
+
+		dbError := db.Delete(&Permission{ID: permissionID})
+
+		if dbError.Error != nil {
+			panic(dbError.Error)
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": nil})
+
+	})
+	router.PUT("/permission/:permissionID", func(ctx *gin.Context) {
+		permissionIDArg := ctx.Param("permissionID")
+
+		if len(permissionIDArg) == 0 {
+			ctx.JSON(http.StatusBadRequest,
+				gin.H{"error": GACLAPIError{Message: "Missing :permissionID query param value"},
+					"result": nil})
+			return
+		}
+
+		var rPermissionUpdate PermissionUpdateRequest
+
+		if bindingError := ctx.ShouldBindJSON(&rPermissionUpdate); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": bindingError.Error()})
+			return
+		}
+
+		permissionID, parseError := strconv.ParseInt(permissionIDArg, 8, 64)
+
+		if parseError != nil {
+			ctx.JSON(http.StatusBadRequest,
+				gin.H{"error": GACLAPIError{Message: "Internal server error"},
+					"result": nil})
+			panic(parseError)
+		}
+
+		dbError := db.Model(&Permission{ID: permissionID}).Updates(&Permission{Name: rPermissionUpdate.Name})
+
+		if dbError.Error != nil {
+			panic(dbError.Error)
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{"error": nil, "result": nil})
+
+	})
 
 	router.Run()
 }
