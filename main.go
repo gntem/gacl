@@ -18,14 +18,12 @@ type GACLAPIError struct {
 
 // User model
 type User struct {
-	gorm.Model
 	ID   int64
 	Name string `gorm:"type:varchar(255);unique;not null"`
 }
 
 // Group model
 type Group struct {
-	gorm.Model
 	ID          int64
 	Name        string        `gorm:"type:varchar(255);unique;not null"`
 	Permissions []*Permission `gorm:"many2many:group_permissions;"`
@@ -34,18 +32,16 @@ type Group struct {
 
 // Permission model
 type Permission struct {
-	gorm.Model
 	ID   int64
 	Name string `gorm:"type:varchar(255);unique;not null"`
 }
 
 // Pagination struct
 type Pagination struct {
-	Page   uint64 `validate:"gte=0"`
-	Offset uint64 `validate:"gte=0"`
-	Limit  uint64 `validate:"gte=0"`
-	SortBy string `validate:"oneof=created_at id"`
-	Order  string `validate:"oneof=desc asc"`
+	Page   int64  `validate:"gte=0" form:"page,default=1" binding:"required"`
+	Limit  int64  `validate:"gte=0" form:"limit,default=10" binding:"required"`
+	SortBy string `validate:"oneof=created_at id" form:"sortBy,default=ID" binding:"required"`
+	Order  string `validate:"oneof=desc asc" form:"order,default=asc" binding:"required"`
 }
 
 // UserCreateRequest struct
@@ -98,18 +94,15 @@ func main() {
 	}
 
 	defer db.Close()
-
-	//db.DropTableIfExists(&User{}, &Group{}, &Permission{})
-	//db.AutoMigrate(&User{}, &Group{}, &Permission{})
-
 	/*
-		usera := User{Name: "usera"}
-		userb := User{Name: "userb"}
+		db.DropTableIfExists(&User{}, &Group{}, &Permission{})
+		db.AutoMigrate(&User{}, &Group{}, &Permission{})
+		usera := User{Name: "a"}
+		userb := User{Name: "b"}
 
 		db.Create(usera)
 		db.Create(userb)
 	*/
-
 	router := gin.Default()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -152,7 +145,7 @@ func main() {
 
 		sortBy := fmt.Sprintf("%s %s", rp.SortBy, rp.Order)
 
-		dbError := db.Limit(rp.Limit).Offset(rp.Offset).Order(sortBy).Find(&result)
+		dbError := db.Limit(rp.Limit).Offset(rp.Page).Order(sortBy).Find(&result)
 
 		if dbError.Error != nil {
 			panic(dbError.Error)
@@ -275,7 +268,7 @@ func main() {
 
 		sortBy := fmt.Sprintf("%s %s", rp.SortBy, rp.Order)
 
-		dbError := db.Limit(rp.Limit).Offset(rp.Offset).Order(sortBy).Find(&result)
+		dbError := db.Limit(rp.Limit).Offset(rp.Page).Order(sortBy).Find(&result)
 
 		if dbError.Error != nil {
 			panic(dbError.Error)
@@ -399,7 +392,7 @@ func main() {
 
 		sortBy := fmt.Sprintf("%s %s", rp.SortBy, rp.Order)
 
-		dbError := db.Limit(rp.Limit).Offset(rp.Offset).Order(sortBy).Find(&result)
+		dbError := db.Limit(rp.Limit).Offset(rp.Page).Order(sortBy).Find(&result)
 
 		if dbError.Error != nil {
 			panic(dbError.Error)
