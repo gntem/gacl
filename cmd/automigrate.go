@@ -1,6 +1,17 @@
 package cmd
 
-func Automigrate(db *DB) {
-	db.DropTableIfExists(&User{}, &Group{}, &Permission{})
-	db.AutoMigrate(&User{}, &Group{}, &Permission{})
+import (
+	"gacl/models"
+
+	"github.com/jinzhu/gorm"
+)
+
+// Automigrate
+func Automigrate(db *gorm.DB) {
+	db.DropTableIfExists(&models.User{}, &models.Group{}, &models.Permission{})
+	db.AutoMigrate(&models.User{}, &models.Group{}, &models.Permission{})
+}
+
+func main() {
+	Automigrate()
 }
