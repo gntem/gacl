@@ -10,11 +10,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-// Env var
-type Env struct {
-	db gorm.DB
-}
-
 func main() {
 	db, err := gorm.Open("postgres", "host=localhost port=5432 user=postgresql dbname=gacl password='' sslmode=disable")
 	db.LogMode(true)
@@ -29,33 +24,33 @@ func main() {
 	router := gin.Default()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
-	router.Use(middlewares.DisableFavicon())
 
+	router.Use(middlewares.DisableFavicon())
+	router.Use(middlewares.DBContext(db))
 	// Group
 	router.GET("/group/:groupID", routes.GroupGetByID)
-	/*
-		router.GET("/groups", routes.GroupGetAll)
-		router.POST("/group", routes.GroupCreate)
-		router.DELETE("/group/:groupID", routes.GroupDeleteByID)
-		router.PUT("/group/:groupID", routes.GroupUpdateByID)
-		// router.POST("/group/users", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
-		// router.DELETE("/group/users", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
 
-		// User
-		router.GET("/user/:userID", routes.UserGetByID)
-		router.GET("/users", routes.UserGetByID)
-		router.POST("/user", routes.UserCreate)
-		router.DELETE("/user/:userID", routes.UserDeleteByID)
-		router.PUT("/user/:userID", routes.UserUpdateByID)
-		router.PUT("/user/:userID/permissions/grant", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
-		router.PUT("/user/:userID/permissions/revoke", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
+	router.GET("/groups", routes.GroupGetAll)
+	router.POST("/group", routes.GroupCreate)
+	router.DELETE("/group/:groupID", routes.GroupDeleteByID)
+	router.PUT("/group/:groupID", routes.GroupUpdateByID)
+	// router.POST("/group/users", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
+	// router.DELETE("/group/users", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
 
-		// Permission
-		router.GET("/permission/:permissionID", routes.PermissionGetByID)
-		router.GET("/permissions", routes.PermissionGetAll)
-		router.DELETE("/permission/:permissionID", routes.PermissiongDeleteById)
-		router.PUT("/permission/:permissionID", routes.PermissionUpdateById)
+	// User
+	router.GET("/user/:userID", routes.UserGetByID)
+	router.GET("/users", routes.UserGetByID)
+	router.POST("/user", routes.UserCreate)
+	router.DELETE("/user/:userID", routes.UserDeleteByID)
+	router.PUT("/user/:userID", routes.UserUpdateByID)
+	// router.PUT("/user/:userID/permissions/grant", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
+	// router.PUT("/user/:userID/permissions/revoke", func(ctx *gin.Context) { ctx.JSON(200, gin.H{"n": 1}) })
 
-	*/
+	// Permission
+	router.GET("/permission/:permissionID", routes.PermissionGetByID)
+	router.GET("/permissions", routes.PermissionGetAll)
+	router.DELETE("/permission/:permissionID", routes.PermissionDeleteByID)
+	router.PUT("/permission/:permissionID", routes.PermissionUpdateByID)
+
 	router.Run()
 }
