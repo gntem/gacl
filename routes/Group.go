@@ -64,7 +64,8 @@ func GroupGetAll(ctx *gin.Context) {
 // GroupCreate , Create an group
 func GroupCreate(ctx *gin.Context) {
 	db := ctx.MustGet("database").(*gorm.DB)
-	var rgroup []structs.GroupCreateRequest
+
+	var rgroup structs.GroupCreateRequest
 
 	if err := ctx.ShouldBindJSON(&rgroup); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -73,7 +74,7 @@ func GroupCreate(ctx *gin.Context) {
 
 	trx := db.Begin()
 
-	dbError := trx.Create(&rgroup)
+	dbError := trx.Create(&models.Group{Name: rgroup.Name})
 
 	if dbError.Error != nil {
 		trx.Rollback()

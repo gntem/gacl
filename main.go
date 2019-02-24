@@ -29,7 +29,6 @@ func main() {
 	router.Use(middlewares.DBContext(db))
 	// Group
 	router.GET("/group/:groupID", routes.GroupGetByID)
-
 	router.GET("/groups", routes.GroupGetAll)
 	router.POST("/group", routes.GroupCreate)
 	router.DELETE("/group/:groupID", routes.GroupDeleteByID)
@@ -49,6 +48,7 @@ func main() {
 	// Permission
 	router.GET("/permission/:permissionID", routes.PermissionGetByID)
 	router.GET("/permissions", routes.PermissionGetAll)
+	router.POST("/permission", routes.PermissionCreate)
 	router.DELETE("/permission/:permissionID", routes.PermissionDeleteByID)
 	router.PUT("/permission/:permissionID", routes.PermissionUpdateByID)
 

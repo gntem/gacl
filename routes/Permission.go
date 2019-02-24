@@ -11,6 +11,29 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+// PermissionCreate create a permission
+func PermissionCreate(ctx *gin.Context) {
+	db := ctx.MustGet("database").(*gorm.DB)
+	var rpermission structs.PermissionCreateRequest
+
+	if err := ctx.ShouldBindJSON(&rpermission); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	trx := db.Begin()
+
+	dbError := trx.Create(&models.Permission{Name: rpermission.Name})
+
+	if dbError.Error != nil {
+		trx.Rollback()
+		panic(dbError.Error)
+	}
+
+	trx.Commit()
+
+	ctx.JSON(http.StatusCreated, gin.H{"error": nil, "result": rpermission})
+}
+
 // PermissionGetByID get permissiong row
 func PermissionGetByID(ctx *gin.Context) {
 	db := ctx.MustGet("database").(*gorm.DB)

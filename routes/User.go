@@ -64,14 +64,14 @@ func UsersGetAll(ctx *gin.Context) {
 // UserCreate create a user
 func UserCreate(ctx *gin.Context) {
 	db := ctx.MustGet("database").(*gorm.DB)
-	var ruser []structs.UserCreateRequest
+	var ruser structs.UserCreateRequest
 
 	if err := ctx.ShouldBindJSON(&ruser); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	trx := db.Begin()
-	dbError := trx.Create(&ruser)
+	dbError := trx.Create(&models.User{Name: ruser.Name})
 
 	if dbError.Error != nil {
 		trx.Rollback()

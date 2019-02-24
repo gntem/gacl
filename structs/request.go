@@ -32,3 +32,8 @@ type GroupUpdateRequest struct {
 type PermissionUpdateRequest struct {
 	Name string `form:"name" validate:"min=4,max=255"`
 }
+
+// PermissionCreateRequest struct
+type PermissionCreateRequest struct {
+	Name string `form:"name" validate:"min=4,max=255" binding:"required"`
+}
